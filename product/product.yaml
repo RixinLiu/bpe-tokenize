@@ -1,0 +1,11 @@
+_ > nanoagent.plugin.v0001.ProductConfig:
+tagline: "Tokenize text the way a GPT-style tokenizer does, checked token by token"
+summary: "Pick one of six cases, each a text with byte-pair merge rules trained on its own corpus. The agent splits the text into words, merges each word one rule at a time, and looks up every token's id. The result is checked against a tokenizer the verifier runs on its own."
+highlights:
+  - "Every token and id is checked against an independent BPE tokenizer"
+  - "Cases cover overlapping pairs, unknown characters, repeated spaces and rank order"
+  - "Runs offline: the cases are built into the plugin"
+steps:
+  - "Ask it to tokenize a case, 1 to 6"
+  - "The agent merges each word with the case's rules and looks up the ids"
+  - "The result shows the tokens and ids, with the verifier's verdict"

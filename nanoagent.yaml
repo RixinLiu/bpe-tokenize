@@ -1,0 +1,43 @@
+_ > nanoagent.plugin.v0001.ManifestConfig:
+id: bpe-tokenize
+name: BPE Tokenize
+version: 0.1.0
+status: ready
+spec: nanoagent.plugin/v0001
+
+runtime > nanoagent.plugin.v0001.RuntimeConfig:
+  type: mcp_stdio
+  command: [uv, run, --frozen, python, -m, plugin]
+
+permissions > nanoagent.plugin.v0001.PermissionsConfig:
+  network > nanoagent.plugin.v0001.NetworkConfig:
+    hosts: []
+  filesystem > nanoagent.plugin.v0001.FilesystemConfig:
+    write: [workspace]
+
+# One entry per contract.Tool; its input and output classes are contract.TOOLS's.
+tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
+  read_case:
+    description: Read a case's text, its merge rules in rank order, and its unk token and id
+  merge_once:
+    description: Apply one merge round to one word's symbols, the rule of least rank among its adjacent pairs, or report that no pair has a rule
+  lookup_ids:
+    description: Look up tokens' ids in a case's vocabulary, null for a token it does not hold
+  full_case:
+    description: Read a case's text, merge rules and whole vocabulary, the ground truth the verifier tokenizes again
+
+# One entry per contract.Task; its input and output classes are contract.TASKS's.
+tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
+  tokenize-case:
+    description: Tokenize a case's text with byte-pair encoding and give each token's id
+    runner: agent
+    tools: [read_case, merge_once, lookup_ids]
+    reference: full_case
+    instructions: |-
+      Tokenize the text of the case with byte-pair encoding (BPE). Read the case with read_case first.
+      1. Split the text into words. A word is a maximal run of characters other than the space; spaces themselves give no token, however many there are.
+      2. Write each word as symbols: the word-start mark ▁ (U+2581), then each character of the word, in order. For example "low" is ["▁", "l", "o", "w"].
+      3. Merge each word on its own with merge_once, passing that word's symbols. Each call applies one round: the rule of least rank among the word's adjacent pairs joins every occurrence of its pair, left to right without overlap. Pass the symbols it returns to the next call, and stop when it returns done. Never merge or split symbols yourself.
+      4. The text's tokens are every word's final symbols, word after word in the text's order.
+      5. Look up every token with lookup_ids. A token it gives null for is written as the case's unk_token, with the case's unk_id; every other token keeps its symbol and the id lookup_ids gave.
+      Submit tokens and ids: tokens[i] is the i-th token and ids[i] its id. Copy symbols and ids exactly as the tools returned them.
